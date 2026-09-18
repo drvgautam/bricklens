@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BrickLens — alerts and evidence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#fff; --fg:#1b1b1f; --muted:#6b6b76; --line:#e4e4ea; --panel:#f6f6f9; --ok:#2d6a4f; --okbg:#e7f3ec;
+          --crit:#c62828; --warn:#ef8f00; --info:#3b6fd6; --accent:#2d6a4f; --accentfg:#fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141418; --fg:#ececf1; --muted:#9a9aa6; --line:#2b2b33; --panel:#1c1c22; --okbg:#173124; } }
+  :root[data-theme="dark"] { --bg:#141418; --fg:#ececf1; --muted:#9a9aa6; --line:#2b2b33; --panel:#1c1c22; --okbg:#173124; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:10px 20px; border-bottom:1px solid var(--line); display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; } header .sub { color:var(--muted); font-size:12px; }
+
+  /* pipeline strip: what has happened, what is next */
+  .pipe { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .stage { display:flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--line); border-radius:999px; font-size:12.5px; color:var(--muted); background:var(--panel); }
+  .stage.done { color:var(--ok); border-color:var(--ok); background:var(--okbg); }
+  .stage.next { color:var(--fg); border-color:var(--accent); border-style:dashed; }
+  .stage .tick { width:14px; height:14px; border-radius:50%; border:1.5px solid currentColor; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+  .stage.done .tick { background:var(--ok); color:#fff; border-color:var(--ok); }
+  .arrow { color:var(--muted); font-size:12px; }
+  button.primary { margin-left:auto; font:inherit; font-weight:600; padding:8px 14px; border:0; border-radius:8px; background:var(--accent); color:var(--accentfg); cursor:pointer; }
+  button.primary:disabled { opacity:.6; cursor:wait; }
+
+  main { display:grid; grid-template-columns:minmax(300px,36%) 1fr; height:calc(100vh - 57px); }
+  #left { display:flex; flex-direction:column; border-right:1px solid var(--line); min-height:0; }
+  .filters { display:flex; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line); align-items:center; flex-wrap:wrap; }
+  .filters select { font:inherit; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); }
+  .filters .count { color:var(--muted); font-size:12px; margin-left:auto; }
+  #list { overflow:auto; flex:1; }
+  .alert { padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .alert:hover,.alert.sel { background:var(--panel); }
+  .alert .det { font-weight:600; } .alert .sus { color:var(--muted); } .alert .when { color:var(--muted); font-size:12px; }
+  .sev { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .sev.critical{background:var(--crit)} .sev.warning{background:var(--warn)} .sev.info{background:var(--info)}
+  .pill { font-size:11px; padding:1px 6px; border-radius:999px; border:1px solid var(--line); color:var(--muted); margin-left:6px; }
+
+  #detail { padding:16px 20px; overflow:auto; }
+  #detail h2 { font-size:16px; margin:0 0 4px; } #detail h3 { font-size:12.5px; margin:18px 0 6px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  ol.suspects { padding-left:20px; margin:0; } ol.suspects li { margin:4px 0; } .why { color:var(--muted); }
+  .graphwrap { position:relative; }
+  svg.graph { width:100%; height:420px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:6px 0 0; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .legend i.ring { background:none; border:2.5px solid var(--crit); } .legend i.ring2 { background:none; border:2.5px solid var(--accent); }
+  .node text { font-size:11px; fill:var(--fg); pointer-events:none; }
+  .link { stroke:var(--muted); stroke-opacity:.6; } .link text { font-size:9px; fill:var(--muted); }
+  .tip { position:absolute; pointer-events:none; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:12px; box-shadow:0 2px 8px rgba(0,0,0,.12); display:none; max-width:280px; }
+  .spark { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; }
+  .spark div { border:1px solid var(--line); border-radius:6px; padding:8px; }
+  .spark .n { font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .spark svg { width:100%; height:70px; display:block; } .spark path { fill:none; stroke:var(--accent); stroke-width:1.5; }
+  code { background:var(--panel); padding:1px 4px; border-radius:3px; }
+
+  /* empty / onboarding states */
+  .empty { padding:28px 24px; max-width:540px; }
+  .empty h2 { font-size:16px; margin:0 0 8px; } .empty p { color:var(--muted); margin:0 0 14px; }
+  .empty ol { margin:0 0 16px 18px; padding:0; color:var(--muted); } .empty li { margin:4px 0; }
+  .toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:8px 14px; border-radius:8px; font-size:13px; display:none; }
+  @media (max-width:800px) { main { grid-template-columns:1fr; height:auto; } #left { border-right:none; border-bottom:1px solid var(--line); max-height:45vh; } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>BrickLens</h1><div class="sub" id="sub">connecting…</div></div>
+  <div class="pipe" id="pipe"></div>
+  <button class="primary" id="run">Run detection</button>
+</header>
+<main>
+  <div id="left">
+    <div class="filters">
+      <select id="fFamily"><option value="">All families</option><option value="ieq">IEQ</option><option value="energy">Energy</option><option value="statistical">Statistical</option></select>
+      <select id="fSev"><option value="">All severities</option><option value="critical">Critical</option><option value="warning">Warning</option><option value="info">Info</option></select>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div id="detail"></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+const gql = q => fetch('/graphql', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:q})}).then(r => r.json()).then(r => { if (r.errors) throw new Error(r.errors[0].message); return r.data; });
+const COLORS = {HVAC_Zone:'#2d6a4f', AHU:'#1d4ed8', VAV:'#7c3aed', Damper:'#b45309', Building:'#374151', Floor:'#6b7280', Room:'#9ca3af', Supply_Fan:'#0e7490'};
+const color = n => COLORS[n.label] || (n.classes.includes('Point') ? '#c62828' : '#6b7280');
+const fmt = s => String(s).replace('T',' ').slice(0,16);
+const FAM = {ieq:'IEQ', energy:'Energy', statistical:'Statistical'};
+let ALERTS = [], SELECTED = null, ST = null;
+
+function toast(msg, ms = 2500) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', ms); }
+
+function pipeline() {
+  const n = ALERTS.length;
+  const stages = [
+    ['Brick model validated & exported', ST.pointsInModel > 0],
+    [`Telemetry loaded · ${ST.seriesBound}/${ST.pointsInModel} points bound`, ST.rows > 0],
+    [n ? `Detection run · ${n} alert${n === 1 ? '' : 's'}` : 'Run detection', n > 0],
+    ['Explore an alert', SELECTED !== null],
+  ];
+  let nextSet = false;
+  document.getElementById('pipe').innerHTML = stages.map(([label, done], i) => {
+    let cls = '';
+    if (done) cls = 'done'; else if (!nextSet) { cls = 'next'; nextSet = true; }
+    return `${i ? '<span class="arrow">›</span>' : ''}<span class="stage ${cls}"><span class="tick">${done ? '✓' : i + 1}</span>${label}</span>`;
+  }).join('');
+}
+
+function emptyState() {
+  const d = document.getElementById('detail');
+  if (!ALERTS.length) {
+    d.innerHTML = `<div class="empty"><h2>The building is loaded — nothing has been checked yet.</h2>
+      <p>${ST.seriesBound} of ${ST.pointsInModel} Brick points have telemetry bound (${ST.rows.toLocaleString()} readings, ${fmt(ST.start)} → ${fmt(ST.end)}). Running detection applies the eight detectors — CO₂, temperature, humidity, damper faults, off-hours operation, coil fighting, demand spikes and pattern deviation — and localises every finding to the zone or equipment responsible.</p>
+      <ol><li>Press <b>Run detection</b> (a few seconds).</li><li>Pick an alert from the list on the left.</li><li>Read the ranked suspects and explore the evidence graph.</li></ol>
+      <button class="primary" style="margin:0" onclick="document.getElementById('run').click()">Run detection</button></div>`;
+  } else if (SELECTED === null) {
+    d.innerHTML = `<div class="empty"><h2>${ALERTS.length} alerts found.</h2><p>Select one on the left. Each alert shows what fired it, the suspects ranked with the reason for each rank, the part of the building graph that explains it, and the readings inside the alert window. Use the filters to narrow by family or severity.</p></div>`;
+  }
+}
+
+async function load() {
+  const data = await gql('{ ingestionStatus { pointsInModel seriesBound unboundSeries rows start end } alerts { id detector family severity start end minutes pointUri suspects { rank name reason score } } }');
+  ST = data.ingestionStatus; ALERTS = data.alerts;
+  document.getElementById('sub').textContent = `semantic fault & IEQ advisor · demo building · ${ST.pointsInModel} points`;
+  pipeline(); render(); emptyState();
+}
+
+function render() {
+  const fam = document.getElementById('fFamily').value, sev = document.getElementById('fSev').value;
+  const rows = ALERTS.filter(a => (!fam || a.family === fam) && (!sev || a.severity === sev));
+  document.getElementById('count').textContent = !ALERTS.length ? '' : rows.length === ALERTS.length ? `${ALERTS.length} alerts` : `${rows.length} of ${ALERTS.length}`;
+  const list = document.getElementById('list'); list.innerHTML = '';
+  if (!ALERTS.length) { list.innerHTML = '<div class="empty" style="padding:18px 14px"><p>Alerts will appear here after detection runs.</p></div>'; return; }
+  if (!rows.length) { list.innerHTML = '<div class="empty" style="padding:18px 14px"><p>No alerts match these filters.</p></div>'; return; }
+  rows.forEach(a => {
+    const el = document.createElement('div'); el.className = 'alert' + (SELECTED === a.id ? ' sel' : '');
+    el.innerHTML = `<div><span class="sev ${a.severity}" title="${a.severity}"></span><span class="det">${a.detector.replace('_',' ')}</span><span class="pill">${FAM[a.family]}</span></div>
+      <div class="sus">→ ${a.suspects[0]?.name ?? ''}</div><div class="when">${fmt(a.start)} → ${fmt(a.end)} · ${a.minutes} min</div>`;
+    el.onclick = () => { SELECTED = a.id; render(); pipeline(); show(a.id); };
+    list.appendChild(el);
+  });
+}
+
+async function show(id) {
+  const d = (await gql(`{ alert(id: "${id}") { detector family severity explanation start end minutes pointUri suspects { rank name label reason score } evidence { nodes { uri label name classes unit } edges { source rel target } } window } }`)).alert;
+  const det = document.getElementById('detail');
+  const sparks = Object.entries(d.window).map(([uri, pts], i) => `<div><div class="n">${uri.split('#')[1]} · ${pts.length} readings</div><svg id="sp${i}" viewBox="0 0 240 70" preserveAspectRatio="none"></svg></div>`).join('');
+  det.innerHTML = `<h2><span class="sev ${d.severity}"></span>${d.explanation}</h2>
+    <div class="why">${d.detector.replace('_',' ')} · ${FAM[d.family]} · ${fmt(d.start)} → ${fmt(d.end)} (${d.minutes} min) · trigger point <code>${d.pointUri.split('#')[1]}</code></div>
+    <h3>Where is the problem? — ranked suspects</h3>
+    <ol class="suspects">${d.suspects.map(s => `<li><b>${s.name}</b> <span class="why">(${s.label}, score ${s.score}) — ${s.reason}</span></li>`).join('')}</ol>
+    <h3>Why? — evidence subgraph around the trigger point</h3>
+    <div class="graphwrap"><svg class="graph" id="g"></svg><div class="tip" id="tip"></div></div>
+    <div class="legend"><span><i class="ring"></i>trigger point</span><span><i class="ring2"></i>top suspect</span>
+      <span><i style="background:#c62828"></i>point</span><span><i style="background:${COLORS.HVAC_Zone}"></i>zone</span><span><i style="background:${COLORS.VAV}"></i>VAV</span>
+      <span><i style="background:${COLORS.Damper}"></i>damper</span><span><i style="background:${COLORS.AHU}"></i>AHU</span><span><i style="background:${COLORS.Building}"></i>building</span>
+      <span>· drag nodes · hover for details</span></div>
+    <h3>What fired it? — readings in the alert window</h3><div class="spark">${sparks}</div>`;
+  draw(d.evidence, d.pointUri, d.suspects[0]);
+  Object.entries(d.window).forEach(([uri, pts], i) => {
+    const v = pts.map(p => p.value), x = d3.scaleLinear().domain([0, v.length - 1]).range([4, 236]), y = d3.scaleLinear().domain([Math.min(...v), Math.max(...v)]).nice().range([64, 6]);
+    d3.select('#sp' + i).append('path').attr('d', d3.line().x((_, j) => x(j)).y(val => y(val))(v));
+  });
+}
+
+function draw(ev, trigger, top) {
+  const svg = d3.select('#g'), tip = document.getElementById('tip'); const W = svg.node().clientWidth || 800, H = 420; svg.attr('viewBox', [0, 0, W, H]);
+  const nodes = ev.nodes.map(n => ({...n})), links = ev.edges.map(e => ({source: e.source, target: e.target, rel: e.rel}));
+  const sim = d3.forceSimulation(nodes).force('link', d3.forceLink(links).id(d => d.uri).distance(90)).force('charge', d3.forceManyBody().strength(-260)).force('center', d3.forceCenter(W / 2, H / 2));
+  svg.append('defs').append('marker').attr('id', 'arr').attr('viewBox', '0 -5 10 10').attr('refX', 18).attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto').append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', 'var(--muted)');
+  const link = svg.append('g').selectAll('g').data(links).join('g').attr('class', 'link');
+  link.append('line').attr('marker-end', 'url(#arr)'); link.append('text').text(d => d.rel);
+  const node = svg.append('g').selectAll('g').data(nodes).join('g').attr('class', 'node')
+    .call(d3.drag().on('start', (e, d) => { if (!e.active) sim.alphaTarget(.3).restart(); d.fx = d.x; d.fy = d.y; }).on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; }).on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
+    .on('mouseenter', (e, d) => { tip.style.display = 'block'; tip.innerHTML = `<b>${d.name || d.uri.split('#')[1]}</b><br>${d.label}${d.unit ? ' · ' + d.unit : ''}<br><span class="why">${d.uri}</span>`; })
+    .on('mousemove', e => { const r = e.currentTarget.ownerSVGElement.getBoundingClientRect(); tip.style.left = (e.clientX - r.left + 12) + 'px'; tip.style.top = (e.clientY - r.top + 12) + 'px'; })
+    .on('mouseleave', () => tip.style.display = 'none');
+  node.append('circle').attr('r', d => d.uri === trigger ? 11 : d.classes.includes('Point') ? 6 : 9).attr('fill', color)
+    .attr('stroke', d => d.uri === trigger ? 'var(--crit)' : (top && d.uri === top.uri) ? 'var(--accent)' : 'none').attr('stroke-width', 3);
+  node.append('text').attr('dx', 12).attr('dy', 4).text(d => d.name || d.uri.split('#')[1]);
+  sim.on('tick', () => {
+    link.select('line').attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    link.select('text').attr('x', d => (d.source.x + d.target.x) / 2).attr('y', d => (d.source.y + d.target.y) / 2);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+document.getElementById('run').onclick = async () => {
+  const b = document.getElementById('run'); b.disabled = true; b.textContent = 'Running…';
+  try { const r = await gql('mutation { runDetection { id } }'); SELECTED = null; await load(); toast(`Detection complete — ${r.runDetection.length} alerts`); }
+  catch (e) { toast('Detection failed: ' + e.message, 6000); }
+  finally { b.disabled = false; b.textContent = 'Run detection'; }
+};
+document.getElementById('fFamily').onchange = render; document.getElementById('fSev').onchange = render;
+load().catch(e => { document.getElementById('sub').textContent = 'cannot reach the API'; document.getElementById('detail').innerHTML = `<div class="empty"><h2>The API is not responding.</h2><p>${e.message}. Is <code>bricklens serve</code> running on this port?</p></div>`; });
+</script>
+</body>
+</html>

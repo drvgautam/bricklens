@@ -1,0 +1,112 @@
+@prefix brick: <https://brickschema.org/schema/Brick#> .
+@prefix bldg:  <urn:bricklens:demo#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit:  <http://qudt.org/vocab/unit/> .
+
+# ---------------------------------------------------------------------------
+# BrickLens demo building: one office floor served by a single-duct VAV AHU.
+# Mirrors what a BIM export would provide (spaces, equipment, points) and is
+# deliberately small enough to read in one sitting.
+# ---------------------------------------------------------------------------
+
+bldg:B1 a brick:Building ;
+    rdfs:label "Demo office building" ;
+    brick:hasPart bldg:F1 ;
+    brick:hasPoint bldg:B1.power .
+
+bldg:F1 a brick:Floor ;
+    rdfs:label "Floor 1" ;
+    brick:hasPart bldg:Z1, bldg:Z2, bldg:Z3, bldg:Z4 .
+
+# --- Zones ------------------------------------------------------------------
+
+bldg:Z1 a brick:HVAC_Zone ; rdfs:label "Zone 1 (north offices)" ; brick:hasPart bldg:R101 .
+bldg:Z2 a brick:HVAC_Zone ; rdfs:label "Zone 2 (east offices)"  ; brick:hasPart bldg:R102 .
+bldg:Z3 a brick:HVAC_Zone ; rdfs:label "Zone 3 (meeting rooms)" ; brick:hasPart bldg:R103 .
+bldg:Z4 a brick:HVAC_Zone ; rdfs:label "Zone 4 (open plan)"     ; brick:hasPart bldg:R104 .
+
+bldg:R101 a brick:Room ; rdfs:label "Room 101" .
+bldg:R102 a brick:Room ; rdfs:label "Room 102" .
+bldg:R103 a brick:Room ; rdfs:label "Room 103" .
+bldg:R104 a brick:Room ; rdfs:label "Room 104" .
+
+# --- Air handling unit --------------------------------------------------------
+
+bldg:AHU1 a brick:AHU ;
+    rdfs:label "AHU-1" ;
+    brick:hasLocation bldg:B1 ;
+    brick:feeds bldg:VAV1, bldg:VAV2, bldg:VAV3, bldg:VAV4 ;
+    brick:hasPart bldg:AHU1.SF ;
+    brick:hasPoint bldg:AHU1.sat, bldg:AHU1.clg_cmd, bldg:AHU1.htg_cmd, bldg:AHU1.power .
+
+bldg:AHU1.SF a brick:Supply_Fan ;
+    rdfs:label "AHU-1 supply fan" ;
+    brick:hasPoint bldg:AHU1.SF.status .
+
+bldg:AHU1.sat      a brick:Supply_Air_Temperature_Sensor ; rdfs:label "AHU-1 supply air temperature" ; brick:hasUnit unit:DEG_C .
+bldg:AHU1.clg_cmd  a brick:Cooling_Command ;                 rdfs:label "AHU-1 cooling coil valve command" ; brick:hasUnit unit:PERCENT .
+bldg:AHU1.htg_cmd  a brick:Heating_Command ;                 rdfs:label "AHU-1 heating coil valve command" ; brick:hasUnit unit:PERCENT .
+bldg:AHU1.power    a brick:Electric_Power_Sensor ;           rdfs:label "AHU-1 electrical power" ;           brick:hasUnit unit:KiloW .
+bldg:AHU1.SF.status a brick:Fan_Status ;                     rdfs:label "AHU-1 supply fan status" .
+
+bldg:B1.power a brick:Electric_Power_Sensor ; rdfs:label "Building main meter power" ; brick:hasUnit unit:KiloW .
+
+# --- VAV terminals: one per zone ---------------------------------------------
+# Each VAV has a damper (command + position feedback), a reheat valve command,
+# and the zone's IEQ points (temperature, temperature setpoint, CO2, humidity).
+
+bldg:VAV1 a brick:VAV ; rdfs:label "VAV-1" ; brick:feeds bldg:Z1 ;
+    brick:hasPart bldg:VAV1.DMP ;
+    brick:hasPoint bldg:VAV1.rht_cmd, bldg:Z1.temp, bldg:Z1.temp_sp, bldg:Z1.co2, bldg:Z1.rh .
+bldg:VAV1.DMP a brick:Damper ; rdfs:label "VAV-1 damper" ;
+    brick:hasPoint bldg:VAV1.dmp_cmd, bldg:VAV1.dmp_pos .
+bldg:VAV1.dmp_cmd a brick:Damper_Position_Command ; rdfs:label "VAV-1 damper command" ;  brick:hasUnit unit:PERCENT .
+bldg:VAV1.dmp_pos a brick:Damper_Position_Sensor ;  rdfs:label "VAV-1 damper position" ; brick:hasUnit unit:PERCENT .
+bldg:VAV1.rht_cmd a brick:Heating_Command ;         rdfs:label "VAV-1 reheat valve command" ; brick:hasUnit unit:PERCENT .
+bldg:Z1.temp    a brick:Zone_Air_Temperature_Sensor ;   rdfs:label "Zone 1 air temperature" ; brick:hasUnit unit:DEG_C .
+bldg:Z1.temp_sp a brick:Zone_Air_Temperature_Setpoint ; rdfs:label "Zone 1 temperature setpoint" ; brick:hasUnit unit:DEG_C .
+bldg:Z1.co2     a brick:CO2_Sensor ;                    rdfs:label "Zone 1 CO2" ; brick:hasUnit unit:PPM .
+bldg:Z1.rh      a brick:Zone_Air_Humidity_Sensor ;      rdfs:label "Zone 1 relative humidity" ; brick:hasUnit unit:PERCENT_RH .
+bldg:Z1 brick:hasPoint bldg:Z1.temp, bldg:Z1.temp_sp, bldg:Z1.co2, bldg:Z1.rh .
+
+bldg:VAV2 a brick:VAV ; rdfs:label "VAV-2" ; brick:feeds bldg:Z2 ;
+    brick:hasPart bldg:VAV2.DMP ;
+    brick:hasPoint bldg:VAV2.rht_cmd, bldg:Z2.temp, bldg:Z2.temp_sp, bldg:Z2.co2, bldg:Z2.rh .
+bldg:VAV2.DMP a brick:Damper ; rdfs:label "VAV-2 damper" ;
+    brick:hasPoint bldg:VAV2.dmp_cmd, bldg:VAV2.dmp_pos .
+bldg:VAV2.dmp_cmd a brick:Damper_Position_Command ; rdfs:label "VAV-2 damper command" ;  brick:hasUnit unit:PERCENT .
+bldg:VAV2.dmp_pos a brick:Damper_Position_Sensor ;  rdfs:label "VAV-2 damper position" ; brick:hasUnit unit:PERCENT .
+bldg:VAV2.rht_cmd a brick:Heating_Command ;         rdfs:label "VAV-2 reheat valve command" ; brick:hasUnit unit:PERCENT .
+bldg:Z2.temp    a brick:Zone_Air_Temperature_Sensor ;   rdfs:label "Zone 2 air temperature" ; brick:hasUnit unit:DEG_C .
+bldg:Z2.temp_sp a brick:Zone_Air_Temperature_Setpoint ; rdfs:label "Zone 2 temperature setpoint" ; brick:hasUnit unit:DEG_C .
+bldg:Z2.co2     a brick:CO2_Sensor ;                    rdfs:label "Zone 2 CO2" ; brick:hasUnit unit:PPM .
+bldg:Z2.rh      a brick:Zone_Air_Humidity_Sensor ;      rdfs:label "Zone 2 relative humidity" ; brick:hasUnit unit:PERCENT_RH .
+bldg:Z2 brick:hasPoint bldg:Z2.temp, bldg:Z2.temp_sp, bldg:Z2.co2, bldg:Z2.rh .
+
+bldg:VAV3 a brick:VAV ; rdfs:label "VAV-3" ; brick:feeds bldg:Z3 ;
+    brick:hasPart bldg:VAV3.DMP ;
+    brick:hasPoint bldg:VAV3.rht_cmd, bldg:Z3.temp, bldg:Z3.temp_sp, bldg:Z3.co2, bldg:Z3.rh .
+bldg:VAV3.DMP a brick:Damper ; rdfs:label "VAV-3 damper" ;
+    brick:hasPoint bldg:VAV3.dmp_cmd, bldg:VAV3.dmp_pos .
+bldg:VAV3.dmp_cmd a brick:Damper_Position_Command ; rdfs:label "VAV-3 damper command" ;  brick:hasUnit unit:PERCENT .
+bldg:VAV3.dmp_pos a brick:Damper_Position_Sensor ;  rdfs:label "VAV-3 damper position" ; brick:hasUnit unit:PERCENT .
+bldg:VAV3.rht_cmd a brick:Heating_Command ;         rdfs:label "VAV-3 reheat valve command" ; brick:hasUnit unit:PERCENT .
+bldg:Z3.temp    a brick:Zone_Air_Temperature_Sensor ;   rdfs:label "Zone 3 air temperature" ; brick:hasUnit unit:DEG_C .
+bldg:Z3.temp_sp a brick:Zone_Air_Temperature_Setpoint ; rdfs:label "Zone 3 temperature setpoint" ; brick:hasUnit unit:DEG_C .
+bldg:Z3.co2     a brick:CO2_Sensor ;                    rdfs:label "Zone 3 CO2" ; brick:hasUnit unit:PPM .
+bldg:Z3.rh      a brick:Zone_Air_Humidity_Sensor ;      rdfs:label "Zone 3 relative humidity" ; brick:hasUnit unit:PERCENT_RH .
+bldg:Z3 brick:hasPoint bldg:Z3.temp, bldg:Z3.temp_sp, bldg:Z3.co2, bldg:Z3.rh .
+
+bldg:VAV4 a brick:VAV ; rdfs:label "VAV-4" ; brick:feeds bldg:Z4 ;
+    brick:hasPart bldg:VAV4.DMP ;
+    brick:hasPoint bldg:VAV4.rht_cmd, bldg:Z4.temp, bldg:Z4.temp_sp, bldg:Z4.co2, bldg:Z4.rh .
+bldg:VAV4.DMP a brick:Damper ; rdfs:label "VAV-4 damper" ;
+    brick:hasPoint bldg:VAV4.dmp_cmd, bldg:VAV4.dmp_pos .
+bldg:VAV4.dmp_cmd a brick:Damper_Position_Command ; rdfs:label "VAV-4 damper command" ;  brick:hasUnit unit:PERCENT .
+bldg:VAV4.dmp_pos a brick:Damper_Position_Sensor ;  rdfs:label "VAV-4 damper position" ; brick:hasUnit unit:PERCENT .
+bldg:VAV4.rht_cmd a brick:Heating_Command ;         rdfs:label "VAV-4 reheat valve command" ; brick:hasUnit unit:PERCENT .
+bldg:Z4.temp    a brick:Zone_Air_Temperature_Sensor ;   rdfs:label "Zone 4 air temperature" ; brick:hasUnit unit:DEG_C .
+bldg:Z4.temp_sp a brick:Zone_Air_Temperature_Setpoint ; rdfs:label "Zone 4 temperature setpoint" ; brick:hasUnit unit:DEG_C .
+bldg:Z4.co2     a brick:CO2_Sensor ;                    rdfs:label "Zone 4 CO2" ; brick:hasUnit unit:PPM .
+bldg:Z4.rh      a brick:Zone_Air_Humidity_Sensor ;      rdfs:label "Zone 4 relative humidity" ; brick:hasUnit unit:PERCENT_RH .
+bldg:Z4 brick:hasPoint bldg:Z4.temp, bldg:Z4.temp_sp, bldg:Z4.co2, bldg:Z4.rh .

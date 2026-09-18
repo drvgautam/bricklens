@@ -1,0 +1,20 @@
+# Example tag → Brick URI mapping for a real BMS or the public CSIRO AHU dataset.
+# Left: the historian/BMS tag name as it appears in the export. Right: the Brick point URI in your model.
+# Unmapped tags are ignored, so a partial mapping is fine for a first run.
+telemetry:
+  source:
+    kind: csiro
+    path: ../ahu-fault-detection-dataset/data      # after `git lfs pull` in that repo
+    ahu: 9
+    mapping:
+      "Supply Air Temp":        "urn:bricklens:demo#AHU1.sat"
+      "Chilled Water Valve":    "urn:bricklens:demo#AHU1.clg_cmd"
+      "Hot Water Valve":        "urn:bricklens:demo#AHU1.htg_cmd"
+      "Supply Fan Status":      "urn:bricklens:demo#AHU1.SF.status"
+      "Supply Fan Power":       "urn:bricklens:demo#AHU1.power"
+      "Zone Temp 1":            "urn:bricklens:demo#Z1.temp"
+      "Zone Temp SP 1":         "urn:bricklens:demo#Z1.temp_sp"
+      "Outside Air Damper Pos": "urn:bricklens:demo#VAV1.dmp_pos"
+      "Outside Air Damper Cmd": "urn:bricklens:demo#VAV1.dmp_cmd"
+    # Tag names above are illustrative; list the real ones with:
+    #   python -c "import pandas as pd; print(list(pd.read_parquet('data/AHU9.parquet').columns))"

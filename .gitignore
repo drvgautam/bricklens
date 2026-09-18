@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+data/*.duckdb
+data/*.duckdb.wal
+data/*.json
+alerts.json
+config/ci.yaml
+.venv/

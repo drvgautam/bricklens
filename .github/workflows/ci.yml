@@ -1,0 +1,39 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests
+      - run: pytest
+      - name: Validate Brick model
+        run: bricklens validate-model
+      - name: Detection quality gate (synthetic ground truth)
+        run: bricklens validate --report validation_report.md
+      - uses: actions/upload-artifact@v4
+        with: { name: validation-report, path: validation_report.md }
+  neo4j-integration:
+    runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5.26
+        env: { NEO4J_AUTH: neo4j/bricklens }
+        ports: ["7687:7687"]
+        options: >-
+          --health-cmd "wget -qO- http://localhost:7474 || exit 1" --health-interval 5s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - name: Export to Neo4j and run detection against it
+        env: { BRICKLENS_NEO4J_URI: bolt://localhost:7687 }
+        run: |
+          sed 's|bolt://neo4j:7687|bolt://localhost:7687|; s|backend: memory.*|backend: neo4j|' config/bricklens.yaml > config/ci.yaml
+          bricklens export --config config/ci.yaml
+          bricklens run --config config/ci.yaml --out alerts.json
+          python -c "import json; a=json.load(open('alerts.json')); assert len(a) >= 15, len(a); print(len(a), 'alerts written to Neo4j')"

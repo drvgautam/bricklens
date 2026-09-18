@@ -1,0 +1,16 @@
+fault_type,target_uri,start,end,note
+co2_high,urn:bricklens:demo#Z3,2026-08-04 13:00:00,2026-08-04 15:30:00,overcrowding
+co2_high,urn:bricklens:demo#Z3,2026-08-20 09:00:00,2026-08-20 11:00:00,overcrowding
+temp_band,urn:bricklens:demo#Z1,2026-08-12 10:00:00,2026-08-12 14:00:00,reheat stuck open +4C
+temp_band,urn:bricklens:demo#Z4,2026-08-24 08:00:00,2026-08-24 12:00:00,underheating -3C
+humidity_band,urn:bricklens:demo#Z2,2026-08-06 22:00:00,2026-08-07 06:00:00,RH 70%
+damper_fault,urn:bricklens:demo#VAV2.DMP,2026-08-10 09:00:00,2026-08-10 16:00:00,damper stuck at 15%
+damper_fault,urn:bricklens:demo#VAV4.DMP,2026-08-26 10:00:00,2026-08-26 15:00:00,damper stuck at 20%
+off_hours,urn:bricklens:demo#AHU1,2026-08-08 08:00:00,2026-08-08 14:00:00,schedule override
+off_hours,urn:bricklens:demo#AHU1,2026-08-18 20:00:00,2026-08-19 02:00:00,schedule override
+coil_fighting,urn:bricklens:demo#AHU1,2026-08-13 10:00:00,2026-08-13 13:00:00,htg 40% while clg 50%
+coil_fighting,urn:bricklens:demo#AHU1,2026-08-28 09:00:00,2026-08-28 11:00:00,htg 35% while clg 45%
+peak_volatility,urn:bricklens:demo#B1,2026-08-17 11:00:00,2026-08-17 11:45:00,+60 kW spike
+peak_volatility,urn:bricklens:demo#B1,2026-08-27 14:00:00,2026-08-27 14:30:00,+70 kW spike
+pattern_deviation,urn:bricklens:demo#AHU1,2026-08-21 08:00:00,2026-08-21 18:00:00,SAT sensor drift +6C
+pattern_deviation,urn:bricklens:demo#Z1,2026-08-25 07:00:00,2026-08-25 18:00:00,CO2 sensor flatline

@@ -1,0 +1,27 @@
+services:
+  neo4j:
+    image: neo4j:5.26
+    environment:
+      NEO4J_AUTH: neo4j/bricklens
+      NEO4J_PLUGINS: '["graph-data-science"]'
+    ports: ["7474:7474", "7687:7687"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7474"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes: ["neo4j-data:/data"]
+
+  bricklens:
+    build: .
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      BRICKLENS_CONFIG: config/bricklens.docker.yaml
+    ports: ["8000:8000"]
+    volumes: ["./data:/app/data"]
+    command: ["bricklens", "serve", "--config", "config/bricklens.docker.yaml"]
+
+volumes:
+  neo4j-data: {}
