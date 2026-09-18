@@ -11,8 +11,7 @@ Brick TTL ──► rdflib + brickschema shapes ──► RDF→graph exporter �
 CSV · Parquet · synthetic · CSIRO · BMS ──► DuckDB telemetry store ──► detectors ──► localiser ──► GraphQL API + web view
 ```
 
-Built as a portfolio piece for an *Advisor in AI and Semantic Technologies* role in a zero-emission-building
-research group. It is scoped to show three things in working code: semantic models plus ML for decision support,
+ It is scoped to show three things in working code: semantic models plus ML for decision support,
 integration of building data from more than one source, and a design that a facilities team could validate and
 plug a real BMS into.
 
